@@ -1,83 +1,82 @@
 import { useState } from "react";
-import { useProducts } from "../hooks/useProducts";
-import { usePagination } from "../hooks/usePagination";
-import { useSearchFilter } from "../hooks/useSearchFilter";
-import ProductCard from "../components/ProductCard";
+import { Link } from "react-router-dom";
+import { useProducts } from "../hooks/useProducts.js";
+import ProductList from "../components/ProductList.jsx";
 import Pagination from "../components/Pagination";
+
 import "./ItemsPage.css";
-function ItemsPage() {
+
+
+const BEST_PRODUCTS_COUNT = 4;
+const PRODUCTS_PER_PAGE = 12;
+
+
+export default function ItemsPage() {
   const [currentPage, setCurrentPage] = useState(1);
-  const { keyword, setKeyword, sortBy, setSortBy } = useSearchFilter();
+  const [keyword, setKeyword] = useState("");
+  const [sortBy, setSortBy] = useState("latest");
+
   const { products, totalPages, loading } = useProducts(
     currentPage,
-    12,
+    PRODUCTS_PER_PAGE,
     keyword,
     sortBy
   );
-  const { pageNumbers, hasPrev, hasNext } = usePagination(
-    currentPage,
-    totalPages
-  );
 
-  const bestProducts = products.slice(0, 4);
+
+  const { products: bestProducts, loading: bestLoading } = useProducts(
+    1,
+    BEST_PRODUCTS_COUNT, 
+    "",
+    "favorite"
+  );
+  
+ 
+
+  function handlePageChange(page) {
+    setCurrentPage(page);
+  }
+
+  function handleSortChange(e) {
+    setSortBy(e.target.value);
+    setCurrentPage(1);
+  }
+
+  function handleSearchChange(e) {
+    setKeyword(e.target.value);
+    setCurrentPage(1);
+  }
 
   return (
     <div className="items-page">
-      {/* Items 전용 헤더 */}
+      <h2>베스트 상품</h2>
+      {bestLoading ? <p>로딩 중...</p> : <ProductList products={bestProducts} />}
 
-
-      {/* 베스트 상품 */}
-      <section className="best-products">
-        <h2>베스트 상품</h2>
-        <div className="best-grid">
-          {bestProducts.map((p) => (
-            <ProductCard key={p.id} product={p} />
-          ))}
+      <h2>판매 중인 상품</h2>
+      <div className="filter-bar">
+        <input
+          type="text"
+          placeholder="검색할 상품을 입력해주세요"
+          value={keyword}
+          onChange={handleSearchChange}
+          className="search-input"
+        />
+        <div className="filter-actions">
+          <Link to="/registration" className="add-btn">상품 등록하기</Link>
+          <select value={sortBy} onChange={handleSortChange} className="sort-select">
+            <option value="latest">최신순</option>
+            <option value="favorite">좋아요순</option>
+          </select>
         </div>
-      </section>
+      </div>
 
-      {/* 판매 중인 상품 */}
-      <section className="all-products">
-        <div className="toolbar">
-          <h2>판매 중인 상품</h2>
-          <div className="controls">
-            <input
-              type="text"
-              placeholder="검색어 입력"
-              value={keyword}
-              onChange={(e) => setKeyword(e.target.value)}
-            />
-            <button className="btn-upload">상품 등록하기</button>
-            <select
-              value={sortBy}
-              onChange={(e) => setSortBy(e.target.value)}
-            >
-              <option value="latest">최신순</option>
-              <option value="like">좋아요순</option>
-            </select>
-          </div>
-        </div>
+      {loading ? <p>로딩 중...</p> : <ProductList products={products} />}
 
-        {loading && <p>로딩 중...</p>}
-
-        <div className="product-grid">
-          {products.map((p) => (
-            <ProductCard key={p.id} product={p} />
-          ))}
-        </div>
-      </section>
-
-      {/* 페이지네이션 */}
       <Pagination
         currentPage={currentPage}
         totalPages={totalPages}
-        pageNumbers={pageNumbers}
-        hasPrev={hasPrev}
-        hasNext={hasNext}
-        onPageChange={setCurrentPage}
+        onPageChange={handlePageChange}
       />
     </div>
   );
 }
-
-export default ItemsPage;

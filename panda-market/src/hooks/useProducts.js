@@ -1,36 +1,35 @@
-import { useEffect, useState } from "react";
-import axios from "../utils/axios";
+import { useEffect, useState, useCallback } from "react";
+import { getProducts } from "../api/productService"; 
 
-export function useProducts(page, limit, keyword, sortBy) {
+export function useProducts(page, pageSize, keyword, sortBy) {
   const [products, setProducts] = useState([]);
   const [totalPages, setTotalPages] = useState(1);
   const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    async function fetchProducts() {
-      setLoading(true);
-      try {
-        const res = await axios.get("/products", {
-          params: {
-            page,
-            limit,
-            keyword,
-            sortBy,
-          },
-        });
+  const fetchProducts = useCallback(async () => {
+    setLoading(true);
+    try {
+      const data = await getProducts({ 
+        offset: (page - 1) * pageSize,
+        limit: pageSize,
+        q: keyword,
+        sort: sortBy === "latest" ? "recent" : "favorite"
+      });
 
-        setProducts(res.data.list || []);
-        const totalCount = res.data.totalCount || 0;
-        setTotalPages(Math.ceil(totalCount / limit));
-      } catch (err) {
-        console.error("상품 불러오기 실패:", err);
-      } finally {
-        setLoading(false);
-      }
+      setProducts(data.items);
+      setTotalPages(Math.ceil(data.total / pageSize));
+    } catch (err) {
+      console.error(err);
+      setProducts([]);
+      setTotalPages(1);
+    } finally {
+      setLoading(false);
     }
+  }, [page, pageSize, keyword, sortBy]);
 
+  useEffect(() => {
     fetchProducts();
-  }, [page, limit, keyword, sortBy]);
+  }, [fetchProducts]);
 
   return { products, totalPages, loading };
 }
